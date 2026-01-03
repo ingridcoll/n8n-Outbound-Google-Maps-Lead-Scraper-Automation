@@ -1,0 +1,1281 @@
+{
+  "name": "Outbound Google Maps Lead Scraper (Demo)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        48
+      ],
+      "id": "4ff0ed84-4a06-40ea-9ba1-b7eecc650d6c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "=1kJG6VB1xSV09zLny7pm_J21raCTCIueC6U0Uw7y3izo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 382768366,
+          "mode": "list",
+          "cachedResultName": "Areas to Scrape",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kJG6VB1xSV09zLny7pm_J21raCTCIueC6U0Uw7y3izo/edit#gid=382768366"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Scraped?",
+              "lookupValue": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        48
+      ],
+      "id": "70a7fed6-c666-43ab-bff2-102f73555cd1",
+      "name": "Get Areas to Scrape",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GiQETNVgRnZMWmzS",
+          "name": "fortuna.develops@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        752,
+        32
+      ],
+      "id": "1b3a0156-333d-48c5-bc65-574ec51e6d16",
+      "name": "Loop Over Each Area to Scrape"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "1kJG6VB1xSV09zLny7pm_J21raCTCIueC6U0Uw7y3izo",
+          "mode": "id"
+        },
+        "title": "={{ $('When Executed by Another Workflow').first().json.areaName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        80,
+        384
+      ],
+      "id": "678f23e9-923c-4027-835f-dbe8187fc598",
+      "name": "Create New Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GiQETNVgRnZMWmzS",
+          "name": "fortuna.develops@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "//Get state or states from Google Sheets\nconst states = $('When Executed by Another Workflow').first().json?.states.split(',').map(s => s.trim());\n\n//Build row object and exclude out-of-state places\nconst allPlaces = [];\nfor (const item of $input.all()) {\n  const address = item.json?.address?.toLowerCase() || '';\n  \n  //Check if address contains any of the state codes\n  const matchesState = states.some(state => address.includes(state.toLowerCase()));\n  \n  if (matchesState) {\n    allPlaces.push({\n      Name: item.json.title || '',\n      Website: item.json.website || '',\n      Category: item.json.category || '',\n      Phone: item.json.phoneNumber || '',\n      Address: item.json.address || '',\n      Rating: item.json.rating || '',\n      NumberOfRatings: item.json.ratingCount || '',\n      Source: 'Google Maps',\n      //UID is used to update existing rows if needed, instead of append\n      UID: item.json.title + item.json.address\n    });\n  }\n}\n\nreturn allPlaces.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        400
+      ],
+      "id": "e828d837-063c-4a39-aa55-e479070b8213",
+      "name": "Prepare Rows for Google Sheets",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create New Sheet').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 382768366,
+          "mode": "list",
+          "cachedResultName": "Areas to Scrape",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1kJG6VB1xSV09zLny7pm_J21raCTCIueC6U0Uw7y3izo/edit#gid=382768366"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Scraped?": "Yes",
+            "Area Name": "={{ $('When Executed by Another Workflow').first().json.areaName }}"
+          },
+          "matchingColumns": [
+            "Area Name"
+          ],
+          "schema": [
+            {
+              "id": "Scraped?",
+              "displayName": "Scraped?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "States",
+              "displayName": "States",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Area Name",
+              "displayName": "Area Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Radius Center (Zipcode)",
+              "displayName": "Radius Center (Zipcode)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Radius Unit",
+              "displayName": "Radius Unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Radius Size",
+              "displayName": "Radius Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Search Query",
+              "displayName": "Search Query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "# of Total Venues",
+              "displayName": "# of Total Venues",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2816,
+        400
+      ],
+      "id": "6e484168-3824-47c0-8b41-b7f9e544c812",
+      "name": "Mark Area as \"Scraped?\" = Yes",
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GiQETNVgRnZMWmzS",
+          "name": "fortuna.develops@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "UW5WJg18a25I9aOe",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/UW5WJg18a25I9aOe",
+          "cachedResultName": "CALL API: Serper.dev"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "intervalBetweenRequests": 5000,
+            "q": "={{ \"event space in \" + $json.zipcodes.code }}",
+            "autocorrect": false,
+            "maxPages": 2
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "q",
+              "displayName": "q",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "autocorrect",
+              "displayName": "autocorrect",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "boolean",
+              "removed": false
+            },
+            {
+              "id": "maxPages",
+              "displayName": "maxPages",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "intervalBetweenRequests",
+              "displayName": "intervalBetweenRequests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        512
+      ],
+      "id": "a060059a-2e6b-4c31-8a1a-6bd29c9cbc07",
+      "name": "Subflow 'CALL API: Serper.dev'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "MCH8fEzzgnw8SiVQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/MCH8fEzzgnw8SiVQ",
+          "cachedResultName": "CALL API: zipcodebase"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "country": "={{ $('When Executed by Another Workflow').first().json.country.toLowerCase() }}",
+            "code": "={{ $('When Executed by Another Workflow').first().json.radiusCenter }}",
+            "unit": "={{ $('When Executed by Another Workflow').first().json.radiusUnit.toLowerCase() }}",
+            "radius": "={{ $('When Executed by Another Workflow').first().json.radiusSize }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "radius",
+              "displayName": "radius",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "unit",
+              "displayName": "unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        384
+      ],
+      "id": "5e5a2ea1-5015-46fa-9464-74290b72b3ae",
+      "name": "Call 'CALL API: zipcodebase'"
+    },
+    {
+      "parameters": {
+        "content": "# Phase 1: Fetch Areas to Scrape from Google Sheets and Start the Main Loop",
+        "height": 816,
+        "width": 3488,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -432,
+        -560
+      ],
+      "typeVersion": 1,
+      "id": "a6d201f0-d69f-40c6-9b08-041caa7e3568",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Phase 2: Loop Over Each Zip Code within the Radius to Find Google Maps Businesses",
+        "height": 1040,
+        "width": 1968,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -432,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "4bb189a7-0e1f-44b1-8c9f-71f7d9f8eaac",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "code",
+        "options": {
+          "destinationFieldName": "zipcodes"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        720,
+        384
+      ],
+      "id": "8be57f6e-88e5-45ab-bf12-f85ddb05a05a",
+      "name": "Create List of Zipcodes within Specified Radius"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1008,
+        384
+      ],
+      "id": "2922bf14-ca24-4c1b-b628-feec28065cf4",
+      "name": "Loop Over Each Zip Code",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "//Separates each Google Maps place into its own object\nconst output = [];\n\nfor (const item of $input.all()) {\n  const places = item.json.places || [];\n\n  for (const place of places) {\n    output.push({\n      json: place,\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        384
+      ],
+      "id": "a28e9f03-889f-4bf4-a104-a4e3970cbff9",
+      "name": "Split Out Each Place",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "268fa32f-06cb-47db-a479-463d521d7d9d",
+              "leftValue": "={{ $json.website }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1616,
+        432
+      ],
+      "id": "80523c6c-5216-47da-8ba6-c9d98d25db08",
+      "name": "Does the Place Have a Website?",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "website",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        384
+      ],
+      "id": "4c9145d0-113b-42f2-84a1-b568c9b0e40c",
+      "name": "Remove Duplicate Places By Website",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "title",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        1872,
+        560
+      ],
+      "id": "73255329-5278-4ace-bab0-0d4e00cdadd5",
+      "name": "Remove Duplicate Places By Name",
+      "executeOnce": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2144,
+        464
+      ],
+      "id": "07b1546a-5a20-48dd-bf0f-0cdcc289d3bc",
+      "name": "Merge Places",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Create New Sheet').first().json.spreadsheetId }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Create New Sheet').first().json.sheetId }}",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "UID"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "NumberOfRatings",
+              "displayName": "NumberOfRatings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "UID",
+              "displayName": "UID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2608,
+        400
+      ],
+      "id": "0096dfc5-3fd5-4101-98ca-32bb8fb3a3b1",
+      "name": "Append or Update Places",
+      "executeOnce": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GiQETNVgRnZMWmzS",
+          "name": "fortuna.develops@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 1. Fetch all Rows in Google Sheet with Area Names to Scrape in Google Maps\n**Purpose**: This node fetches rows from a Google Sheet, each row corresponding to an `areaName` (location), to later scrape Google Maps businesses for leads within the specified location and radius.\n\n*Input*:\n-Google Sheet ID: the unique identifier of the Google Sheet from which data will be fetched.\n-Sheet Name: the sheet that contains the list of areas to scrape.\n\nEach row in the Google Sheet includes the country code, state, the zip code that will be at the center of the radius, the size of the radius (in km or miles), and the Google Maps query (e.g. \"dentist\").\nThis node only pulls areas that have been marked as `Scraped? == No`, to avoid re-scraping areas already done.\n\n*Output*:\n- On success: All rows marked that have been marked as `Scraped? == No`. \n- On failure: If the Google Sheets data fetch fails (e.g., invalid sheet name), the node will return an error message and n8n will trigger an error workflow that sends the adminstrator of the n8n instance an automatic notification (via Slack, Discord, Whatsapp, Email, etc. as preferred).\n",
+        "height": 720,
+        "width": 640,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "c9dd2ec6-576a-49d4-8154-d172daecea9e",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## 0. TRIGGER: Manual Click\n- This workflow is triggered manually.\n- It could be set up to trigger for any new row added to the main Google Sheet, so it automatically identifies new areas to scrape.",
+        "height": 400,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -416,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "d05c5f10-fe9d-4a1d-94d8-cb00871c7f6f",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## 2. Loop Over Each Area and Call Subflow for Scraping\n**Purpose**: This node loops over each area (row) that was fetched from the Google Sheet and then calls a subflow that performs the actual scraping from Google Maps. The subflow will be triggered for each area individually to avoid overloading n8n's memory and optimize performance. This node ensures that each area's data is processed in isolation, and only the relevant information is passed to the subflow for scraping. By doing so, the workflow runs efficiently, even when dealing with large amounts of data.\n\n*Input*:\nThe input data for this node comes from the previous node that fetches rows from the Google Sheet. This node expects the following fields from the incoming JSON:\n-Area Name: The name of the location that will be used for scraping.\n-Radius Center (Zipcode): The zip code at the center of the search radius.\n-Search Query: The type of business to search for within the radius (e.g., \"restaurant\").\n-Country: The 2-letter country code where the area is located.\n-Radius Unit: The unit of measurement for the search radius (either km or miles).\n-Radius Size: The size of the radius around the zip code, used to define the search area.\n\n*Output*:\n- On success: The node will loop over each area (row), passing the required data to a subflow that will handle the scraping. The subflow will then retrieve Google Maps businesses within that area.\n- On failure: If one of the subflow run fails (e.g., invalid inputs), the node will return an error message and n8n will trigger an error workflow that sends the adminstrator of the n8n instance an automatic notification. However, using a subflow prevents the rest of the areas from failing since they are running in isolation.\n",
+        "height": 720,
+        "width": 832,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        544,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "2cd5ce5e-89a2-4343-8ec2-2df45a892863",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 1. Create New Google Sheet for Storing Google Maps Results\n**Purpose**: This node creates a new Google Sheet for each area (row) being processed. The sheet is named after the Area Name, and it will be used to store the Google Maps scraping results for that area.\n\n*Input*:\n-Area Name: The name of the area (used to name the new sheet).\n-Google Sheet ID: The ID of the parent Google Sheet where the new sheet will be created.\n\n*Output*:\n- On success: A new sheet is created within the specified Google Sheet, named after the Area Name. The sheet is ready to store the Google Maps results for that area.\n- On failure: If sheet creation fails (e.g., invalid credentials or sheet ID), the node will trigger an error workflow.\n",
+        "height": 640,
+        "width": 496,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "9a1c5846-e6e4-4010-bddd-4720ad5c5fd2",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 0. TRIGGER: Called by Main Workflow\n- This workflow is triggered by the main workflow (above).\n- Each run is completely isolated from the previous runs to avoid losing results from successful runs if one fails.",
+        "height": 464,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -416,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "94f8b1b0-4a4d-4052-b337-58e35fa83d28",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 2. Fetch All Zip Codes within the Specified Radius Using ZipCodeBase API\n**Purpose**: Calls the ZipCodeBase API to fetch all zip codes within the specified radius (from the Google Sheet) around a given zip code. Then, separates each zip code returned into its own object to be later passed to the loop.\n\n*Input*:\n-`code`: The zip code at the center of the radius.\n-`radius`: The size of the radius, either in km or miles.\n-`country`: The 2-letter country code for the zip code.\n-`unit`: The unit used for the size (`km` or `miles`).\n\n*Output*:\n- On success: A list of zip codes within the specified radius, each separated in its own object.\n- On failure: If the API call fails (e.g., invalid API key, bad response), the node triggers an error workflow.\n",
+        "height": 672,
+        "width": 496,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "dee00beb-cb76-487d-94cf-79016b7679dc",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 3. Loop Over Each Zip Code and Call Serper.dev API to Scrape Google Maps Businesses\n**Purpose**: Loops over each zip code within the radius, calling the Serper.dev API to scrape Google Maps businesses using the provided search query and the current zip code. The API returns results that are split out with a JavaScript code node.\n\n*Input*:\n-`code`: The current zip code being processed.\n-`q`: The business type to search for (e.g., \"dentist\", \"restaurant\").\n-`maxPages`: The number of Google Maps pages to scrape for each zip code.\n-`intervalBetweenRequests`: The time in miliseconds to wait between each page.\n\nEach API call uses the combined search query with each different zip code  (e.g. \"dentist in 78761). Each API call returns ~10 results, which costs 1 Serper.dev credit. Serper.dev offers 2,500 free credits for every new account. All results are then separated into their own objects with JavaScript. \n\n*Output*:\n- On success: A list of businesses matching the search query for all zip codes within the radius, returned by the Serper.dev API.\n- On failure: If the API call fails (e.g., invalid API key, bad response), the node triggers an error workflow.\n",
+        "height": 912,
+        "width": 608,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        912,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "d4c88367-1c3a-4dac-af06-ed8402c723df",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 4. Remove Duplicates by Website or Place Name and Combine into Final List\n**Purpose**: An `if` condition separates Google Maps business places into two categories: places with a website and places without a website. It then removes duplicates from both categories: by finding duplicate websites or by duplicate place names for places without a website. Finally, the two lists are merged into a single list of unique places.\n\n*Input*: `places`: A list of business places, where each place contains details such as `name`,` address`, `category`, and `website` (if available).\n\nFirst, the places are separated into two lists:\n1.Places with a website: Places that have a valid website URL. If multiple places have the same website URL, only one instance of that website will remain in the list.\n2.Places without a website: Places where the website field does not exist. If multiple places have the same name, only one instance of that place will remain in the list.\nThen, the two lists (places with websites and places without websites) are merged into a single list, combining the unique places from both categories.\n\n*Output*:\n- On success: A single, merged list of unique places, combining both places with and without websites, while ensuring there are no duplicates.\n- On failure: If the input places list is empty or contains invalid data (e.g., missing required fields), the process will trigger an error workflow.\n",
+        "height": 944,
+        "width": 752,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1552,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "e2fbacab-5b8f-476a-a7c0-621df2844a0c",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## 4. Filter Out-of-State Places, Add or Update List of Places in Google Sheets, and Mark Area as Scraped\n**Purpose**: Lastly, these nodes filter the out-of-state business places to make sure the places are located within the radius, builds a row object for each valid place with JavaScript, and then either appends or updates the Google Sheets with the list of places. Finally, it marks the area as \"scraped\" in the main Google Sheet.\n\n*Input*: \n-`states`: A list of one or multiple states (for cities in-between states) specified in the Google Sheet.\n-`allPlaces`: A list of all unique business places fetched from the Serper.dev API, each with details like `name`, `address`, `phoneNumber`, `website`, `rating`, etc.\n-Google Sheet ID: The ID of the previously created sheet (named after the area) to append or update the places.\n\nFor each place in the list of all places:\nThe address is checked to see if it contains any of the provided state codes (case-insensitive). \nIf the address matches any of the state codes, the place is considered valid. This ensures there are no wild-card places accidentally pulled that are not within the radius. For each valid place (matching the state), a row object is created, including an `UID` field that combines the name of the place and the address into one single string. This field is used in the append or update rows to identify places that have already been imported into the sheet, thus avoiding duplicates and updating the row with the latest information.\n\n*Output*:\n- On success: A list of filtered places (only those matching the provided states) will be appended or updated in the Google Sheet, and the area will be marked as scraped in the main sheet.\n- On failure: If the update or append to the sheet fails (e.g., network issues, invalid credentials), the workflow will notify the administrator and skip processing for the affected area.\n",
+        "height": 880,
+        "width": 704,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2320,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "8a134c02-1c73-4f69-9ff3-9a54d819930c",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "## Scrape Google Maps Businesses within a Radius for as Low as $1 per 1,000 Places\n### Technologies used: \n- *Serper.dev* for Google Maps scraping\n- *Google Sheets* for storing results\n- *ZipCodeBase API* to fetch all zip codes within the specified radius area\n- *JavaScript* for data processing\n\n## This fully automated system scrapes Google Maps for relevant business listings based on a search query (e.g. \"Mexican restaurant\") within a specified radius (as big as 500 miles), stores them in Google Sheets, and ensures no duplicates; at a cost of just $1 per 1,000 places scraped. Ideal for any business or marketing team that needs an easy, cheap, and efficient way to gather, organize, and track Google Maps businesses for outreach, research, or lead generation.\n### This automation was created by *Ingrid Coll*. See my other projects on GitHub at [github.com/ingridcoll](https://github.com/ingridcoll) or send me a LinkedIn message at [linkedin.com/in/ingridcoll](https://www.linkedin.com/in/ingridcoll/) with any questions or business inquiries!\n\n## In PHASE 1: Fetch Areas to Scrape from Google Sheets and Start the Main Loop...\n### Extracts target areas to scrape and radius size from a Google Sheet and loops over each area.\nAutomatically pulls a list of areas and associated search queries from Google Sheets.\nOnly processes areas marked as “not scraped” to avoid redundancy.\nStarts a loop iteration for each area and initiates the process to scrape businesses from Google Maps.\nOptimized to avoid n8n running out of memory by separating each scraping into its own loop iteration.\n## In PHASE 2: Loop Over Each Zip Code within the Radius to Find Google Maps Businesses...\n### Locates Google Maps businesses for each zip code within the search radius.\nPulls all zip codes within the specified search radius with the **ZipCodeBase API**, to iterate over them one by one (maximizes number of businsesses found).\nIterates over each zip code within the given radius, using **Serper.dev API** to scrape Google Maps for businesses matching the specified query (e.g., \"dentist\" or \"wedding venue\").\nPulls business details including `name`, `address`, `category`, `website`, `rating`, and `phone number`, ensuring high-quality, accurate data for each location.\nEnsures the system covers all target zip codes in the area, increasing the breadth of collected data.\nEliminates the need for manual location checks, automating the entire scraping process across multiple zip codes.\n## In PHASE 3: Remove Duplicates and Append or Update all Rows in Google Sheets...\n### Removes duplicated businesses and adds all leads into Google Sheets.\nProcesses the scraped businesses by removing duplicates (businesses with the same name or website are filtered out to ensure no redundancy).\nAppends or updates rows in Google Sheets based on unique identifiers (UIDs), keeping data up-to-date and ensuring accurate tracking of each lead.\nMarks each area as “scraped” in the main sheet, preventing re-scraping of the same locations in future runs.\nFrees up sales and marketing teams from manual data entry.\n\n\n## Useful Sites\n- To draw a radius over a map visualization and make sure the correct area will be targeted:\nhttps://www.calcmaps.com/map-radius/\n- To see a map of all zip codes:\nhttps://www.randymajors.org/zipcodegmap?x=-98.1098958&y=30.0295675&cx=-97.9917928&cy=29.8748836&zoom=9&zipcodes=show\n\n",
+        "height": 1216,
+        "width": 1008,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        -560
+      ],
+      "typeVersion": 1,
+      "id": "6afb0cfa-9791-4515-ad50-46cbde9bfbe8",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "content": "# Outbound Google Maps Lead Scraper with n8n",
+        "height": 80,
+        "width": 4496,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        -640
+      ],
+      "typeVersion": 1,
+      "id": "87f557ed-2ffb-4c61-863e-030833dad1cb",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "content": "# Phase 3: Remove Duplicates and Append or Update all Rows in Google Sheets",
+        "height": 1040,
+        "width": 1520,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1536,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "55cc3c4d-a9ce-4aea-9dd5-732521660f4f",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "searchQuery"
+            },
+            {
+              "name": "areaName"
+            },
+            {
+              "name": "radiusCenter",
+              "type": "number"
+            },
+            {
+              "name": "radiusSize",
+              "type": "number"
+            },
+            {
+              "name": "country"
+            },
+            {
+              "name": "radiusUnit"
+            },
+            {
+              "name": "states"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        384
+      ],
+      "id": "850e470f-26d3-4b13-893f-92418fae23ce",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "eSKfHIPHK2RdLZq6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/eSKfHIPHK2RdLZq6",
+          "cachedResultName": "Outbound Google Maps Lead Scraper (Demo)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "radiusCenter": "={{ $('Get Areas to Scrape').item.json[\"Radius Center (Zipcode)\"] }}",
+            "radiusSize": "={{ $('Get Areas to Scrape').item.json[\"Radius Size\"] }}",
+            "country": "={{ $('Get Areas to Scrape').item.json.Country.toLowerCase() }}",
+            "states": "={{ $('Get Areas to Scrape').item.json.States }}",
+            "areaName": "={{ $('Get Areas to Scrape').item.json[\"Area Name\"] }}",
+            "radiusUnit": "={{ $('Get Areas to Scrape').item.json[\"Radius Unit\"] }}",
+            "searchQuery": "={{ $('Get Areas to Scrape').item.json[\"Search Query\"] }}"
+          },
+          "matchingColumns": [
+            "searchQuery"
+          ],
+          "schema": [
+            {
+              "id": "searchQuery",
+              "displayName": "searchQuery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "areaName",
+              "displayName": "areaName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "radiusCenter",
+              "displayName": "radiusCenter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "radiusSize",
+              "displayName": "radiusSize",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "radiusUnit",
+              "displayName": "radiusUnit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "states",
+              "displayName": "states",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        48
+      ],
+      "id": "d4fab68f-5ad1-48d3-aa99-96a68ede6f9e",
+      "name": "Call Subflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Areas to Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Areas to Scrape": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Each Area to Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Each Area to Scrape": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call Subflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Sheet": {
+      "main": [
+        [
+          {
+            "node": "Call 'CALL API: zipcodebase'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Rows for Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Append or Update Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subflow 'CALL API: Serper.dev'": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Each Zip Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'CALL API: zipcodebase'": {
+      "main": [
+        [
+          {
+            "node": "Create List of Zipcodes within Specified Radius",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Area as \"Scraped?\" = Yes": {
+      "main": [
+        []
+      ]
+    },
+    "Create List of Zipcodes within Specified Radius": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Each Zip Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Each Zip Code": {
+      "main": [
+        [
+          {
+            "node": "Split Out Each Place",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Subflow 'CALL API: Serper.dev'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Each Place": {
+      "main": [
+        [
+          {
+            "node": "Does the Place Have a Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Does the Place Have a Website?": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicate Places By Website",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Remove Duplicate Places By Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicate Places By Website": {
+      "main": [
+        [
+          {
+            "node": "Merge Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicate Places By Name": {
+      "main": [
+        [
+          {
+            "node": "Merge Places",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Places": {
+      "main": [
+        [
+          {
+            "node": "Prepare Rows for Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or Update Places": {
+      "main": [
+        [
+          {
+            "node": "Mark Area as \"Scraped?\" = Yes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Create New Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Subflow": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Each Area to Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "63aee39d-b893-445b-a1ff-30c1b24d8221",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6a5c2aba2d020b6c63c839df688d415d7b8bb079205e5e39b220163adfdc3348"
+  },
+  "id": "eSKfHIPHK2RdLZq6",
+  "tags": [
+    {
+      "updatedAt": "2025-12-31T01:28:44.718Z",
+      "createdAt": "2025-12-31T01:28:44.718Z",
+      "id": "5aDdfFeIRjhMIAuB",
+      "name": "Outbound"
+    },
+    {
+      "updatedAt": "2025-12-08T17:42:40.173Z",
+      "createdAt": "2025-12-08T17:42:40.173Z",
+      "id": "TFVOmmeIaRNjt2aD",
+      "name": "API"
+    },
+    {
+      "updatedAt": "2025-12-08T17:42:42.545Z",
+      "createdAt": "2025-12-08T17:42:42.545Z",
+      "id": "mwZzIH0UGtq4AWzZ",
+      "name": "Google Maps"
+    },
+    {
+      "updatedAt": "2025-11-30T22:51:25.910Z",
+      "createdAt": "2025-11-30T22:51:25.910Z",
+      "id": "oukuvO5iWfHbAXMi",
+      "name": "Demo"
+    },
+    {
+      "updatedAt": "2025-12-31T01:28:48.414Z",
+      "createdAt": "2025-12-31T01:28:48.414Z",
+      "id": "vRKsKZbSAjWBw1Qf",
+      "name": "Scraper"
+    }
+  ]
+}
